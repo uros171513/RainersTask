@@ -3,7 +3,7 @@
 ## 🧭 Task Overview
 
 The goal of this task was to redesign the **“Country Insights”** tab layout to make it more interactive, data-driven, and visually informative. 
-Additionaly, sorting over total trade and YoY growth was added. 
+Additionally, sorting over total trade and YoY growth was added. 
 
 ### Objectives
 
