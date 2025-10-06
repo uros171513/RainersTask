@@ -28,7 +28,7 @@ const CountryInsights = () => {
     country.countryName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Sorting functionaliry
+  // Sorting functionality
   const requestSort = (key: "totalValue" | "growth") => {
     let direction: "desc" | "asc" = "desc";
     if (sortConfig && sortConfig.key === key && sortConfig.direction === "desc") {
