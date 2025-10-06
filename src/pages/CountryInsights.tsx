@@ -5,10 +5,16 @@ import { Search, TrendingUp, TrendingDown, Globe2 } from "lucide-react";
 import { useTradeData } from "@/hooks/useTradeData";
 import { formatCurrency } from "@/lib/tradeDataProcessor";
 import { useState } from "react";
+import ImportChart from "@/components/trade/ImportChart";
+import ExportChart from "@/components/trade/ExportChart";
 
 const CountryInsights = () => {
   const { loading, topCountries } = useTradeData();
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortConfig, setSortConfig] = useState<{
+    key: "totalValue" | "growth";
+    direction: "asc" | "desc";
+  } | null>(null);
 
   if (loading) {
     return (
@@ -21,6 +27,27 @@ const CountryInsights = () => {
   const filteredCountries = topCountries.filter(country => 
     country.countryName.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Sorting functionality
+  const requestSort = (key: "totalValue" | "growth") => {
+    let direction: "desc" | "asc" = "desc";
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "desc") {
+      direction = "asc";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Sorted data
+  const sortedCountries = [...filteredCountries];
+  if (sortConfig !== null) {
+    sortedCountries.sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  }
 
   const avgGrowth = topCountries.length > 0 
     ? (topCountries.reduce((sum, c) => sum + c.growth, 0) / topCountries.length).toFixed(1)
@@ -90,8 +117,10 @@ const CountryInsights = () => {
 
       {/* Main Content */}
       <Tabs defaultValue="partners" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-1">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="partners">Trading Partners</TabsTrigger>
+          <TabsTrigger value="imports">Imports</TabsTrigger>
+          <TabsTrigger value="exports">Exports</TabsTrigger>
         </TabsList>
 
         <TabsContent value="partners" className="space-y-4">
@@ -102,12 +131,22 @@ const CountryInsights = () => {
                 <TableRow>
                   <TableHead className="w-12">Rank</TableHead>
                   <TableHead>Country</TableHead>
-                  <TableHead className="text-right">Total Trade (AED B)</TableHead>
-                  <TableHead className="text-right">YoY Growth</TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => requestSort("totalValue")}>
+                    Total Trade (AED B)
+                    {sortConfig?.key === "totalValue" && (
+                      <span>{sortConfig.direction === "asc" ? " ▲" : " ▼"}</span>
+                    )}
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer" onClick={() => requestSort("growth")}>
+                    YoY Growth
+                    {sortConfig?.key === "growth" && (
+                      <span>{sortConfig.direction === "asc" ? " ▲" : " ▼"}</span>
+                    )}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCountries.map((country, index) => (
+                {sortedCountries.map((country, index) => (
                   <TableRow key={country.country} className="hover:bg-muted/50 cursor-pointer">
                     <TableCell className="font-medium">#{index + 1}</TableCell>
                     <TableCell>
@@ -127,6 +166,14 @@ const CountryInsights = () => {
               </TableBody>
             </Table>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="imports">
+          <ImportChart />
+        </TabsContent>
+
+        <TabsContent value="exports">
+          <ExportChart />
         </TabsContent>
       </Tabs>
     </div>
