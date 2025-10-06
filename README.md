@@ -1,73 +1,176 @@
-# Welcome to your Lovable project
+# 📊 Country Insights — Layout Redesign and Data Visualization
 
-## Project info
+## 🧭 Task Overview
 
-**URL**: https://lovable.dev/projects/3158d111-2ac8-4850-a7bd-f215ae8530da
+The goal of this task was to redesign the **“Country Insights”** tab layout to make it more interactive, data-driven, and visually informative. 
+Additionaly, sorting over total trade and YoY growth was added. 
 
-## How can I edit this code?
+### Objectives
 
-There are several ways of editing your application.
+- ✅ Allow sorting by total trade value and year-over-year (YoY) growth.  
+- ✅ Add two new sections next to *Trading Partners*: **Imports** and **Exports**.  
+- ✅ Display an initial visualization for imports, showing aggregate imports over time.  
+- ✅ Show percentage change above each bar compared to the previous year.  
+- ✅ Include a horizontal bar chart for top sections per country (*HS Sections*) by total observed value.  
+- ✅ Enable filtering by country so both charts dynamically adjust based on selection.
 
-**Use Lovable**
+### Data Sources
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/3158d111-2ac8-4850-a7bd-f215ae8530da) and start prompting.
+- `enriched_import_data.csv`  
+- `enriched_export_data.csv`
 
-Changes made via Lovable will be committed automatically to this repo.
+Implementation was done, and the component is designed to support both data files.
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🧩 Implementation Details
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 1. Data Parsing and Preparation
 
-Follow these steps:
+CSV data is parsed using **Papa Parse**, transforming each record into a typed object:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```ts
+type TradeRecord = {
+  country_name: string;
+  TIME_PERIOD: string;
+  OBS_VALUE: number;
+  HS_SECTION: string;
+  description: string;
+};
 ```
 
-**Edit a file directly in GitHub**
+After loading:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- Unique country names are extracted to populate the dropdown filter.  
+- Data is aggregated in two ways:
+  - **By year** — total observed import value per year.  
+  - **By HS section** — total import value per product section.  
 
-**Use GitHub Codespaces**
+Both aggregations are stored in component state for **reactive rendering**.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+### 2. 📈 Yearly Trend Chart (Vertical Bar Chart)
 
-This project is built with:
+Displays total import values per year (`OBS_VALUE`) and a label above each bar indicating **percentage change** from the previous year.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+**Formula:**
 
-## How can I deploy this project?
+```text
+Change = ((Current Year Total - Previous Year Total) / Previous Year Total) * 100
+```
 
-Simply open [Lovable](https://lovable.dev/projects/3158d111-2ac8-4850-a7bd-f215ae8530da) and click on Share -> Publish.
+A positive value indicates **growth**, while a negative value shows **decline** compared to the previous year.
 
-## Can I connect a custom domain to my Lovable project?
+**Example Implementation:**
 
-Yes, you can!
+```tsx
+<BarChart data={aggregated}>
+  <XAxis dataKey="year" />
+  <YAxis />
+  <Tooltip />
+  <Bar dataKey="total" fill="#3b82f6">
+    <LabelList dataKey="change" position="top" formatter={(v) => `${v}%`} />
+  </Bar>
+</BarChart>
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+The chart dynamically updates when a country is selected.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+
+### 3. 📊 Top Sections Chart (Horizontal Bar Chart)
+
+This visualization highlights the **Top 10 sections per country** ranked by total import value.
+
+Each bar represents an **HS section**, and tooltips display both the numeric value and section description.
+
+```tsx
+<BarChart layout="vertical" data={topSections}>
+  <XAxis type="number" />
+  <YAxis dataKey="section" type="category" />
+  <Tooltip
+    formatter={(value) => value.toLocaleString()}
+    labelFormatter={(label) => sectionDescriptions[label]}
+  />
+  <Bar dataKey="total" fill="#2563eb" />
+</BarChart>
+```
+
+When a specific country is chosen, the chart updates to reflect that country’s import structure.
+
+---
+
+### 4. 🎛️ Filtering and Interactivity
+
+Filtering is implemented using **ShadCN UI Select**:
+
+```tsx
+<Select value={filteredCountry} onValueChange={setFilteredCountry}>
+  <SelectTrigger>
+    <SelectValue placeholder="Select Country" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="All">All</SelectItem>
+    {countries.map(c => (
+      <SelectItem key={c} value={c}>{c}</SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+```
+
+Selecting a country triggers **re-aggregation** of both datasets (yearly totals and section totals).  
+The UI updates automatically without page reloads.
+
+---
+
+### 5. 🗺️ Integration in “Country Insights”
+
+Within the Country Insights layout, a **tab navigation** structure was implemented with:
+
+- 🟢 **Trading Partners** (already existing, added sorting)
+- 🔵 **Imports**
+- 🟣 **Exports**
+
+Each tab displays dynamic content:
+
+| Tab | Description |
+|-----|--------------|
+| **Trading Partners** | Sortable table by total trade and YoY growth |
+| **Imports** | ImportChart component (filters + visualizations) |
+| **Exports** | ExportChart component (same logic, different data file) |
+
+This separation improves **clarity**, **modularity**, and **user experience**.
+
+---
+
+## 🧠 Technical Summary
+
+| Feature | Description |
+|----------|--------------|
+| **Framework** | React + TypeScript |
+| **UI Library** | ShadCN + TailwindCSS |
+| **Charts** | Recharts |
+| **Data Parsing** | Papa Parse |
+| **Filtering** | Reactive country filter |
+| **Sorting** | Total trade & YoY growth |
+| **Visualizations** | Vertical + horizontal bar charts |
+| **Reusability** | Shared logic between import/export charts |
+
+---
+
+## ✅ Outcome
+
+The redesigned **Country Insights** tab now offers:
+
+- 📌 Intuitive exploration by country and category  
+- 📈 Clear visualization of yearly trade activity  
+- 🔍 Instant insight into YoY growth and decline  
+- 💠 Consistent and responsive UI/UX layout  
+- 🧩 Modular structure for future export data integration  
+
+---
+
+**Author:** Uroš Jovanović  
+**Tech Stack:** React • TypeScript • Recharts • TailwindCSS • ShadCN/UI • Papa Parse  
+**Repository:** [GitHub – RainersTask](https://github.com/uros171513/RainersTask)
