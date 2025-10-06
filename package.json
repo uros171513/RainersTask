@@ -48,6 +48,7 @@
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.462.0",
+    "millify": "^6.1.0",
     "next-themes": "^0.3.0",
     "papaparse": "^5.5.3",
     "pluralize": "^8.0.0",
